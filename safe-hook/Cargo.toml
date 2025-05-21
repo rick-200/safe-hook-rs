@@ -1,0 +1,9 @@
+[package]
+name = "safe-hook"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+inventory = "0.3"
+safe-hook-macros = { path = "../safe-hook-macros" }
+once_cell = "1.21.3"
