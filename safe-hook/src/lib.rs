@@ -1,6 +1,7 @@
 //! Safe-Hook is an inline hook library for Rust.
 //! It provides a simple and safe way to create hooks in your Rust applications,
 //! allowing you to modify the behavior of functions at runtime.
+//! 
 //! The design principle of Safe-Hook is safety and simplicity.
 //!
 //! ## Features

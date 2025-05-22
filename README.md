@@ -1,5 +1,4 @@
 # Safe-Hook
-
 Safe-Hook is an inline hook library for Rust.
 It provides a simple and safe way to create hooks in your Rust applications,
 allowing you to modify the behavior of functions at runtime.
@@ -17,12 +16,12 @@ The design principle of Safe-Hook is safety and simplicity.
   it theoretically supports all platforms that Rust supports.
 
 ## Usage
-For more examples, please refer to:
-- [add.rs](./safe-hook/tests/add.rs): 
-  An example of how to hook a function.
-- [concat.rs](./safe-hook/tests/concat.rs): 
-  An example of how to hook a function with reference parameters.
+For more examples, please refer to `examples` and `tests` directory.
 ```rust
+use std::sync::Arc;
+use safe_hook::{lookup_hookable, Hook};
+use safe_hook_macros::hookable;
+
 #[hookable("add")]
 fn add(left: i64, right: i64) -> i64 {
     left + right
@@ -30,37 +29,26 @@ fn add(left: i64, right: i64) -> i64 {
 
 #[derive(Debug)]
 struct HookAdd {
-    left: i64,
-    right: i64,
-    result: i64,
+    x: i64,
 }
 
 impl Hook for HookAdd {
     type Args<'a> = (i64, i64);
     type Result = i64;
     fn call(&self, args: (i64, i64), next: &dyn Fn((i64, i64)) -> i64) -> i64 {
-        println!("hook {:?} called with args: {:?}", self, args);
-        let (left, right) = args;
-        let res = next((left + self.left, right + self.right));
-        res + self.result
+        next(args) + self.x
     }
 }
 
-#[test]
-fn test() {
+fn main() {
     let hook = Arc::new(HookAdd {
-        left: 1,
-        right: 1,
-        result: 1,
+        x: 1,
     });
-    let add_hookable = lookup_hookable("add").unwrap();
     assert_eq!(add(1, 2), 3);
-    add_hookable.add_hook(hook1).unwrap();
-    assert_eq!(add(1, 2), 6);
+    lookup_hookable("add").unwrap().add_hook(hook).unwrap();
+    assert_eq!(add(1, 2), 4);
 }
 ```
-
-
 
 ## Limitations
 - **Intrusive**: Needs to annotate target functions manually.
@@ -81,5 +69,3 @@ Details:
 - Hooks Added: There is a read/write lock (just some atomic operations in most cases),
   some additional function calls via pointers,
   and some copy operations to pack parameters into a tuple.
-
-
