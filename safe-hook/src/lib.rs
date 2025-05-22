@@ -1,9 +1,9 @@
 //! Safe-Hook is an inline hook library for Rust.
 //! It provides a simple and safe way to create hooks in your Rust applications,
 //! allowing you to modify the behavior of functions at runtime.
-//! 
+//!
 //! The design principle of Safe-Hook is safety and simplicity.
-//! 
+//!
 //! ## Features
 //! - **Inline Hooking**: Safe-Hook allows you to hook into functions at runtime,
 //!   enabling you to modify their behavior.
@@ -13,24 +13,24 @@
 //!   allowing you to add and remove hooks at runtime without any restrictions.
 //! - **Cross-Platform**: Safe-Hook is designed to work on multiple platforms,
 //!   it theoretically supports all platforms that Rust supports.
-//! 
+//!
 //! ## Usage
 //! For more examples, please refer to `examples` and `tests` directory.
 //! ```rust
 //! use std::sync::Arc;
 //! use safe_hook::{lookup_hookable, Hook};
 //! use safe_hook_macros::hookable;
-//! 
+//!
 //! #[hookable("add")]
 //! fn add(left: i64, right: i64) -> i64 {
 //!     left + right
 //! }
-//! 
+//!
 //! #[derive(Debug)]
 //! struct HookAdd {
 //!     x: i64,
 //! }
-//! 
+//!
 //! impl Hook for HookAdd {
 //!     type Args<'a> = (i64, i64);
 //!     type Result = i64;
@@ -38,7 +38,7 @@
 //!         next(args) + self.x
 //!     }
 //! }
-//! 
+//!
 //! fn main() {
 //!     let hook = Arc::new(HookAdd {
 //!         x: 1,
@@ -48,11 +48,11 @@
 //!     assert_eq!(add(1, 2), 4);
 //! }
 //! ```
-//! 
+//!
 //! ## Limitations
 //! - **Intrusive**: Needs to annotate target functions manually.
 //!   Which means it's not suitable for hook third-party libraries.
-//! 
+//!
 //! ## Performance
 //! Extra overhead:
 //! - No Hook Added: One atomic load and one branch jump,
@@ -60,9 +60,9 @@
 //! - Hooks Added: There is a read/write lock (just some atomic operations in most cases),
 //!   some additional function calls via pointers,
 //!   and some copy operations to pack parameters into a tuple.
-//! 
+//!
 //! A sloppy benchmark (uses 12700H) shows that the extra overhead is
-//! about 0.5ns when no hooks are added 
+//! about 0.5ns when no hooks are added
 //! (as a comparison, an `add(a,b)` function takes about 0.5ns),
 //! about 14ns when hooks are added,
 //! and that each additional hook results in about 2ns of overhead.
@@ -101,7 +101,7 @@ pub trait Hook: Send + Sync + 'static {
 
 /// A trait for dynamic dispatch of hooks.
 /// # Safety
-/// This trait should never be implemented by hand.
+/// **THIS TRAIT SHOULD NEVER BE IMPLEMENTED BY USER CODE.**
 #[doc(hidden)]
 pub unsafe trait HookDyn: Send + Sync {
     fn get_call_fn(&self) -> *const ();
@@ -179,7 +179,7 @@ impl HookableFuncMetadata {
     /// # Safety
     /// This function is unsafe because it takes a raw pointer to a function without type checking.
     /// It is used inside the macro [`hookable`] to create a new [`HookableFuncMetadata`] instance.
-    /// DO NOT USE THIS FUNCTION UNLESS YOU KNOW WHAT YOU ARE DOING
+    /// **THIS FUNCTION SHOULD NOT BE CALLED DIRECTLY.**
     #[doc(hidden)]
     pub unsafe fn new(
         name: String,
@@ -274,6 +274,7 @@ pub fn call_with_hook<R, A>(func: fn(A) -> R, meta: &'static HookableFuncMetadat
     let next_fn = |args: A| {
         if pos.get() < hooks.len() {
             let hook = hooks[pos.get()].0.as_ref();
+            // SAFETY: get_call_fn should return a function pointer to hook_call_wrapper<A>
             let f: HookFn<A, R> = unsafe { std::mem::transmute(hook.get_call_fn()) };
             pos.set(pos.get() + 1);
             let res = f(
