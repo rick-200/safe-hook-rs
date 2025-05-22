@@ -1,3 +1,9 @@
+//! This create provides a convenient macro [macro@hookable] to mark functions, allowing them to be hooked.
+//! 
+//! See `safe-hook` crate for more details.
+
+
+
 use proc_macro::TokenStream;
 use quote::{ToTokens, format_ident, quote};
 use syn::parse::Parse;
@@ -58,6 +64,21 @@ fn get_hookable_lifetime(f: &ItemFn) -> Option<proc_macro2::TokenStream> {
         ),
     }
 }
+/// This macro is used to mark a function as hookable, without changing the signature.
+/// It generates some extra codes to support hooks, and registers the function to the inventory.
+/// 
+/// Not Supported:
+/// - functions with generic types
+/// - functions with `self` receiver
+/// - functions returns references
+/// 
+/// # Examples:
+/// ```
+/// #[hookable("add")]
+/// fn add(left: i64, right: i64) -> i64 {
+///    left + right
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as HookableProcArgs);
