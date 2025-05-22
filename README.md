@@ -53,19 +53,17 @@ fn main() {
 ## Limitations
 - **Intrusive**: Needs to annotate target functions manually.
   Which means it's not suitable for hook third-party libraries.
-- **Limited to Rust**: Safe-Hook is designed specifically for Rust applications.
-- **Not Zero-Cost**: The library adds some overhead to the hooked functions,
-  which may not be suitable for performance-critical applications.
 
 ## Performance
-A sloppy benchmark (uses 12700H) shows that the extra overhead is
-about 0.5ns when no hooks are added,
-about 14ns when hooks are added,
-and that each hook results in about 2ns of additional overhead.
-
-Details:
-- No Hook Added: The additional overhead is one atomic load and one branch jump,
+Extra overhead:
+- No Hook Added: One atomic load and one branch jump,
   which should be very lightweight in most cases.
 - Hooks Added: There is a read/write lock (just some atomic operations in most cases),
   some additional function calls via pointers,
   and some copy operations to pack parameters into a tuple.
+
+A sloppy benchmark (uses 12700H) shows that the extra overhead is
+about 0.5ns when no hooks are added 
+(as a comparison, an `add(a,b)` function takes about 0.5ns),
+about 14ns when hooks are added,
+and that each additional hook results in about 2ns of overhead.
