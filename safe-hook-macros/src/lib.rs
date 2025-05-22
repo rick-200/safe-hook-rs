@@ -149,7 +149,7 @@ pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
             safe_hook::inventory::submit! {
                 safe_hook::HookableFuncRegistry::new(&META)
             }
-            if !FLAG.load(Ordering::Relaxed) {
+            if !FLAG.load(Ordering::Acquire) {
                 return __hookable_inner(#args_name_list);
             }
             safe_hook::call_with_hook::<#ret_type, (#(#input_type),*)>(|args| __hookable_inner(#unpack_list), &META, (#args_name_list))

@@ -132,7 +132,7 @@ impl HookableFuncMetadata {
             .unwrap_or(hooks.len());
         hooks.insert(pos, (hook, priority));
         self.fast_path_flag
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+            .store(true, std::sync::atomic::Ordering::Release);
         Ok(())
     }
 
