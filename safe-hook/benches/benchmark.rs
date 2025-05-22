@@ -1,8 +1,8 @@
 use criterion::{Criterion, criterion_group, criterion_main};
+use safe_hook::Hook;
 use safe_hook_macros::hookable;
 use std::hint::black_box;
 use std::sync::Arc;
-use safe_hook::Hook;
 
 #[inline(never)]
 fn add(left: i32, right: i32) -> i32 {
@@ -51,8 +51,7 @@ fn benchmark(c: &mut Criterion) {
     c.bench_function("add_hookable(1 hook)", |b| {
         b.iter(|| add_hookable_call(black_box(1), black_box(2)))
     });
-    
-    
+
     let hook2 = Arc::new(HookAdd {
         left: 0,
         right: 1,
@@ -63,7 +62,6 @@ fn benchmark(c: &mut Criterion) {
         b.iter(|| add_hookable_call(black_box(1), black_box(2)))
     });
 
-    
     let hook3 = Arc::new(HookAdd {
         left: 0,
         right: 0,
@@ -73,8 +71,7 @@ fn benchmark(c: &mut Criterion) {
     c.bench_function("add_hookable(3 hooks)", |b| {
         b.iter(|| add_hookable_call(black_box(1), black_box(2)))
     });
-    
-    
+
     add_metadata.remove_hook(hook1.as_ref());
     add_metadata.remove_hook(hook2.as_ref());
     add_metadata.remove_hook(hook3.as_ref());
@@ -83,5 +80,9 @@ fn benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, benchmark);
+criterion_group!(
+    name = benches;
+    config = Criterion::default().sample_size(1000);
+    targets = benchmark
+);
 criterion_main!(benches);
