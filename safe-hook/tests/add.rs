@@ -1,11 +1,6 @@
-use safe_hook::{Hook, HookDyn, lookup_hookable};
+use safe_hook::{Hook, lookup_hookable};
 use safe_hook_macros::hookable;
-use std::any::Any;
 use std::fmt::Debug;
-use std::marker::PhantomData;
-use std::ops::Deref;
-use std::ptr::NonNull;
-use std::rc::Rc;
 use std::sync::Arc;
 
 #[hookable("add")]
@@ -21,7 +16,8 @@ struct HookAdd {
 }
 
 impl Hook for HookAdd {
-    type Func = fn(i64, i64) -> i64;
+    type Args<'a> = (i64, i64);
+    type Result = i64;
     fn call(&self, args: (i64, i64), next: &dyn Fn((i64, i64)) -> i64) -> i64 {
         println!("hook {:?} called with args: {:?}", self, args);
         let (left, right) = args;

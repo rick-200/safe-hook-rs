@@ -1,6 +1,5 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote, ToTokens};
-use std::fmt::Debug;
+use quote::{ToTokens, format_ident, quote};
 use syn::parse::Parse;
 use syn::{ItemFn, LitStr, parse_macro_input};
 struct HookableProcArgs {
@@ -47,10 +46,16 @@ fn get_hookable_lifetime(f: &ItemFn) -> Option<proc_macro2::TokenStream> {
             if let syn::GenericParam::Lifetime(lifetime) = g {
                 Some(quote! { #lifetime })
             } else {
-                panic!("Hookable cannot be used with generic '{}'", g.to_token_stream());
+                panic!(
+                    "Hookable cannot be used with generic '{}'",
+                    g.to_token_stream()
+                );
             }
         }
-        _ => panic!("Hookable cannot be used with more than one generics <{}>", f.sig.generics.params.to_token_stream()),
+        _ => panic!(
+            "Hookable cannot be used with more than one generics <{}>",
+            f.sig.generics.params.to_token_stream()
+        ),
     }
 }
 #[proc_macro_attribute]
@@ -77,6 +82,18 @@ pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
             syn::FnArg::Receiver(_) => panic!("Method receiver (self) is not supported"),
         })
         .collect::<Vec<_>>();
+    let input_type_with_static_lifetime = input_type
+        .iter()
+        .map(|ty| {
+            if let syn::Type::Reference(ref_ty) = &**ty {
+                let mut ref_ty = ref_ty.clone();
+                ref_ty.lifetime = Some(syn::Lifetime::new("'static", proc_macro2::Span::call_site()));
+                quote! { #ref_ty }
+            } else {
+                quote! { #ty }
+            }
+        })
+        .collect::<Vec<_>>();
 
     let ret_type = match &input_fn.sig.output {
         syn::ReturnType::Default => quote! { () },
@@ -95,12 +112,18 @@ pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
     inner_fn.sig.ident = format_ident!("__hookable_inner");
     let fn_sig = &input_fn.sig;
 
+    let unpack_list: proc_macro2::TokenStream = (0..input_fn.sig.inputs.len())
+        .map(|i| {
+            let idx = syn::Index::from(i);
+            quote! { args.#idx, }
+        })
+        .collect();
+
     // 原样返回函数代码
     let generated = quote! {
         #fn_sig {
             #inner_fn
 
-            use safe_hook::FnSig;
             use safe_hook::HookableFuncMetadata;
             use core::sync::atomic::AtomicBool;
             use std::sync::LazyLock;
@@ -115,8 +138,8 @@ pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
                         #hookable_name.to_string(),
                         #input_fn_ident as *const (),
                         (
-                            std::any::TypeId::of::<<SelfFunc as FnSig>::Result>(),
-                            std::any::TypeId::of::<<SelfFunc as FnSig>::Args>(),
+                            std::any::TypeId::of::<#ret_type>(),
+                            std::any::TypeId::of::<(#(#input_type_with_static_lifetime),*)>(),
                         ),
                         &FLAG,
                     )
@@ -129,7 +152,7 @@ pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
             if !FLAG.load(Ordering::Relaxed) {
                 return __hookable_inner(#args_name_list);
             }
-            safe_hook::call_with_hook::<SelfFunc>(__hookable_inner, &META, (#args_name_list))
+            safe_hook::call_with_hook::<#ret_type, (#(#input_type),*)>(|args| __hookable_inner(#unpack_list), &META, (#args_name_list))
         }
     };
     generated.into()
