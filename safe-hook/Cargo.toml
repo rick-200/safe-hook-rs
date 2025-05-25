@@ -1,7 +1,11 @@
 [package]
 name = "safe-hook"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
+description = "A safe and simple inline hook library for Rust."
+keywords = ["hook"]
+repository = "https://github.com/rick-200/safe-hook-rs"
+license = "Apache-2.0"
 
 [dependencies]
 inventory = "0.3"
