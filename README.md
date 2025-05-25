@@ -15,8 +15,16 @@ The design principle of Safe-Hook is safety and simplicity.
 - **Cross-Platform**: Safe-Hook is designed to work on multiple platforms,
   it theoretically supports all platforms that Rust supports.
 
+## Limitations
+- **Intrusive**: Needs to annotate target functions manually.
+  Which means it's not suitable for hook third-party libraries.
+
+
 ## Usage
-For more examples, please refer to `examples` and `tests` directory.
+More Examples:
+- [Hook a function with reference parameters](#hook-a-function-with-reference-parameters)
+
+Simple Usage:
 ```rust
 use std::sync::Arc;
 use safe_hook::{lookup_hookable, Hook};
@@ -50,10 +58,6 @@ fn main() {
 }
 ```
 
-## Limitations
-- **Intrusive**: Needs to annotate target functions manually.
-  Which means it's not suitable for hook third-party libraries.
-
 ## Performance
 Extra overhead:
 - No Hook Added: One atomic load and one branch jump,
@@ -63,7 +67,57 @@ Extra overhead:
   and some copy operations to pack parameters into a tuple.
 
 A sloppy benchmark (uses 12700H) shows that the extra overhead is
-about 0.5ns when no hooks are added 
+about 0.5ns when no hooks are added
 (as a comparison, an `add(a,b)` function takes about 0.5ns),
 about 14ns when hooks are added,
 and that each additional hook results in about 2ns of overhead.
+
+## More Examples
+### Hook a function with reference parameters
+To hook a function containing referenced parameters,
+it must be guaranteed that all referenced parameters
+have the same lifecycle, this is a current implementation limitation,
+and in fact should be equivalent for the caller,
+since the rust compiler should always be able to
+convert long lifecycle references to short lifecycle references
+(if this is wrong, please let me know).
+
+```rust
+use safe_hook::Hook;
+use safe_hook_macros::hookable;
+use std::sync::Arc;
+
+#[hookable("concat")]
+fn concat<'a>(left: &'a str, right: &'a str) -> String {
+  format!("{}-{}", left, right)
+}
+
+struct ConcatHook {
+  mid: String,
+}
+
+impl Hook for ConcatHook {
+  type Args<'b> = (&'b str, &'b str);
+  type Result = String;
+
+  fn call<'a>(
+    &'a self,
+    args: Self::Args<'a>,
+    next: &dyn for<'c> Fn(Self::Args<'c>) -> Self::Result,
+  ) -> Self::Result {
+    let (left, right) = args;
+    let lest_new = format!("{}-{}", left, self.mid);
+    next((&lest_new, right))
+  }
+}
+
+fn main() {
+  let hookable_metadata = safe_hook::lookup_hookable("concat").unwrap();
+  assert_eq!(concat("abc", "def"), "abc-def");
+  let hook = Arc::new(ConcatHook {
+    mid: "hook".to_string(),
+  });
+  hookable_metadata.add_hook(hook).unwrap();
+  assert_eq!(concat("abc", "def"), "abc-hook-def");
+}
+```

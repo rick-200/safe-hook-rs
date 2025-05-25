@@ -22,8 +22,7 @@ impl Hook for ConcatHook {
     ) -> Self::Result {
         let (left, right) = args;
         let lest_new = format!("{}-{}", left, self.mid);
-        let res = next((&lest_new, right));
-        res
+        next((&lest_new, right))
     }
 }
 
