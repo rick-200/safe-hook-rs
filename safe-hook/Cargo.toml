@@ -9,7 +9,7 @@ license = "Apache-2.0"
 
 [dependencies]
 inventory = "0.3"
-safe-hook-macros = { path = "../safe-hook-macros" }
+safe-hook-macros = { version = "0.2.1", path = "../safe-hook-macros" }
 
 [dev-dependencies]
 criterion = { version = "0.6", features = ["html_reports"] }
