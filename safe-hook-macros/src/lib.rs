@@ -145,10 +145,10 @@ pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
         #fn_sig {
             #inner_fn
 
-            use safe_hook::HookableFuncMetadata;
-            use core::sync::atomic::AtomicBool;
-            use std::sync::LazyLock;
-            use std::sync::atomic::Ordering;
+            use ::safe_hook::HookableFuncMetadata;
+            use ::core::sync::atomic::AtomicBool;
+            use ::std::sync::LazyLock;
+            use ::std::sync::atomic::Ordering;
 
             type SelfFunc #generics = #func_type;
 
@@ -167,13 +167,13 @@ pub fn hookable(args: TokenStream, input: TokenStream) -> TokenStream {
                 };
                 metadata
             });
-            safe_hook::inventory::submit! {
-                safe_hook::HookableFuncRegistry::new(&META)
+            ::safe_hook::inventory::submit! {
+                ::safe_hook::HookableFuncRegistry::new(&META)
             }
             if !FLAG.load(Ordering::Acquire) {
                 return __hookable_inner(#args_name_list);
             }
-            safe_hook::call_with_hook::<#ret_type, (#(#input_type),*)>(|args| __hookable_inner(#unpack_list), &META, (#args_name_list))
+            ::safe_hook::call_with_hook::<#ret_type, (#(#input_type),*)>(|args| __hookable_inner(#unpack_list), &META, (#args_name_list))
         }
     };
     generated.into()
